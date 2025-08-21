@@ -1,7 +1,7 @@
 // src/modules/search/routes.ts
 import { Hono } from 'hono';
 import { createOverwatchClient, OverwatchClient } from '@/lib/overwatch/client';
-import { createSearchHandlers } from './handlers';
+import { createSearchHandlers } from '@/modules/search/handlers';
 import { config } from '@/lib/config/api';
 
 const createSearchRoutes = () => {
