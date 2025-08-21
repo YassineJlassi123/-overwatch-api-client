@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overwatch API Client</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 3rem 0;
+            color: white;
+            margin-bottom: 2rem;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            margin: 0 0.5rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+        }
+
+        .endpoint {
+            border-left: 4px solid #667eea;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            background: #f8fafc;
+            border-radius: 0 8px 8px 0;
+            transition: all 0.3s ease;
+        }
+
+        .endpoint:hover {
+            background: #f1f5f9;
+            border-left-color: #764ba2;
+        }
+
+        .endpoint h3 {
+            color: #667eea;
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .method {
+            background: #10b981;
+            color: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .url {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: #475569;
+            color: white;
+            border: none;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            transition: background 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background: #334155;
+        }
+
+        .params {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .param {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .param h4 {
+            color: #475569;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .param span {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        .try-it {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 1rem;
+        }
+
+        .try-it:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem 0;
+            color: white;
+            opacity: 0.8;
+        }
+
+        .footer a {
+            color: white;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255,255,255,0.3);
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .params {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.5rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>🎮 Overwatch API Client</h1>
+            <p>A streamlined API client for Overwatch player data using OverFast API</p>
+            <div>
+                <span class="badge">TypeScript</span>
+                <span class="badge">Hono.js</span>
+                <span class="badge">Zod</span>
+                <span class="badge">OverFast API</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 style="color: #667eea; margin-bottom: 1rem;">📊 API Status</h2>
+            <p><span class="status-indicator"></span> API is operational and ready to serve requests</p>
+            <p style="margin-top: 0.5rem; color: #64748b;">All endpoints use efficient single-call architecture with data extraction</p>
+        </div>
+
+        <div class="card">
+            <h2 style="color: #667eea; margin-bottom: 1.5rem;">🚀 Quick Start</h2>
+            <div class="endpoint">
+                <h3><span class="method">GET</span> Get Player Data</h3>
+                <div class="url">
+                    <button class="copy-btn" onclick="copyToClipboard(this, '/api/user/Prometheus-1252?platform=pc')">[copy]</button>
+                    /api/user/Prometheus-1252?platform=pc
+                </div>
+                <p>Replace <code>Prometheus-1252</code> with any valid BattleTag</p>
+                <a href="/api/user/Prometheus-1252?platform=pc" class="try-it" target="_blank">Try this endpoint →</a>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2 style="color: #667eea; margin-bottom: 1.5rem;">👤 Player Endpoints</h2>
+                
+                <div class="endpoint">
+                    <h3><span class="method">GET</span> Complete Player Data</h3>
+                    <div class="url">
+                        <button class="copy-btn" onclick="copyToClipboard(this, '/api/user/{battletag}?platform={platform}&gamemode={gamemode}')">[copy]</button>
+                        /api/user/{battletag}?platform={platform}&gamemode={gamemode}
+                    </div>
+                    <p>Get both summary and statistics in one request</p>
+                    <div class="params">
+                        <div class="param">
+                            <h4>battletag</h4>
+                            <span>Required • Format: Name-1234</span>
+                        </div>
+                        <div class="param">
+                            <h4>platform</h4>
+                            <span>Optional • pc or console (default: pc)</span>
+                        </div>
+                        <div class="param">
+                            <h4>gamemode</h4>
+                            <span>Optional • competitive or quickplay</span>
+                        </div>
+                    </div>
+                    <a href="/api/user/Prometheus-1252?platform=pc&gamemode=competitive" class="try-it" target="_blank">Try example →</a>
+                </div>
+
+                <div class="endpoint">
+                    <h3><span class="method">GET</span> Player Summary Only</h3>
+                    <div class="url">
+                        <button class="copy-btn" onclick="copyToClipboard(this, '/api/user/{battletag}/summary?platform={platform}')">[copy]</button>
+                        /api/user/{battletag}/summary?platform={platform}
+                    </div>
+                    <p>Get profile information, avatar, competitive ranks</p>
+                    <a href="/api/user/Prometheus-1252/summary?platform=pc" class="try-it" target="_blank">Try example →</a>
+                </div>
+
+                <div class="endpoint">
+                    <h3><span class="method">GET</span> Player Statistics Only</h3>
+                    <div class="url">
+                        <button class="copy-btn" onclick="copyToClipboard(this, '/api/user/{battletag}/stats?platform={platform}&gamemode={gamemode}')">[copy]</button>
+                        /api/user/{battletag}/stats?platform={platform}&gamemode={gamemode}
+                    </div>
+                    <p>Get detailed gameplay statistics and hero comparisons</p>
+                    <a href="/api/user/Prometheus-1252/stats?platform=pc&gamemode=quickplay" class="try-it" target="_blank">Try example →</a>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 style="color: #667eea; margin-bottom: 1.5rem;">🔍 Search & Utility</h2>
+                
+                <div class="endpoint">
+                    <h3><span class="method">GET</span> Search Players</h3>
+                    <div class="url">
+                        <button class="copy-btn" onclick="copyToClipboard(this, '/api/search?name={battletag}')">[copy]</button>
+                        /api/search?name={battletag}
+                    </div>
+                    <p>Search for players by BattleTag or partial name</p>
+                    <div class="params">
+                        <div class="param">
+                            <h4>name</h4>
+                            <span>Required • BattleTag or partial name</span>
+                        </div>
+                    </div>
+                    <a href="/api/search?name=Prometheus" class="try-it" target="_blank">Try example →</a>
+                </div>
+
+                <div class="endpoint">
+                    <h3><span class="method">GET</span> Health Check</h3>
+                    <div class="url">
+                        <button class="copy-btn" onclick="copyToClipboard(this, '/health')">[copy]</button>
+                        /health
+                    </div>
+                    <p>Check API status and uptime</p>
+                    <a href="/health" class="try-it" target="_blank">Try example →</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 style="color: #667eea; margin-bottom: 1.5rem;">⚡ Architecture & Features</h2>
+            <div class="grid">
+                <div>
+                    <h3 style="color: #475569; margin-bottom: 1rem;">🏗️ Simplified Architecture</h3>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ Single API call per request to OverFast API</li>
+                        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ Consistent data structure across endpoints</li>
+                        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ Data extraction for specific needs</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 style="color: #475569; margin-bottom: 1rem;">🛡️ Reliability Features</h3>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">🔒 Input validation with Zod</li>
+                        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">🔄 Automatic retry logic</li>
+                        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">🌐 CORS enabled</li>
+                        <li style="padding: 0.5rem 0;">📝 Detailed error responses</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 style="color: #667eea; margin-bottom: 1.5rem;">📋 BattleTag Format</h2>
+            <p style="margin-bottom: 1rem;">BattleTags must follow the format: <strong>Name-1234</strong></p>
+            <div style="background: #f1f5f9; padding: 1rem; border-radius: 8px; font-family: monospace;">
+                <strong>✅ Valid examples:</strong><br>
+                • Prometheus-1252<br>
+                • Player-1234<br>
+                • Hero-5678<br><br>
+                <strong>❌ Invalid examples:</strong><br>
+                • Prometheus (missing number)<br>
+                • Player1234 (missing dash)<br>
+                • 1234-Player (number first)
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Powered by <a href="https://overfast-api.tekrop.fr" target="_blank">OverFast API</a> • Built with modern web technologies</p>
+        </div>
+    </div>
+
+    <script>
+        function copyToClipboard(button, text) {
+            navigator.clipboard.writeText(text).then(function() {
+                const originalText = button.textContent;
+                button.textContent = '[copied!]';
+                button.style.background = '#10b981';
+                setTimeout(function() {
+                    button.textContent = originalText;
+                    button.style.background = '#475569';
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Could not copy text: ', err);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.card');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.animation = 'slideInUp 0.6s ease-out forwards';
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            cards.forEach(card => {
+                observer.observe(card);
+            });
+        });
+    </script>
+</body>
+</html>
