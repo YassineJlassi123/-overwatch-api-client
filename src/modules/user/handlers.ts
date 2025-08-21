@@ -1,9 +1,9 @@
 import { Context } from 'hono';
 import { z } from 'zod';
-import { OverwatchClient } from '@/lib/overwatch/client';
-import { createResponse, createErrorResponse } from '@/lib/utils/response';
-import { OverwatchApiError, ValidationError } from '@/lib/utils/errors';
-import { Platform, FullPlayerData } from '@/lib/overwatch/types';
+import { OverwatchClient } from '@/lib/overwatch/client.js';
+import { createResponse, createErrorResponse } from '@/lib/utils/response.js';
+import { OverwatchApiError, ValidationError } from '@/lib/utils/errors.js';
+import { Platform, FullPlayerData } from '@/lib/overwatch/types.js';
 
 const BattleTagSchema = z.string()
   .regex(/^[a-zA-Z0-9]{3,12}-[0-9]{4,5}$/, 'Invalid BattleTag format (should be: Name-1234)')
