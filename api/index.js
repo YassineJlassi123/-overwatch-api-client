@@ -1,3 +1,4 @@
-import app from '../dist/app.js';
+import { handle } from '@hono/node-server/vercel'
+import app from '../dist/app.js'
 
-export default app;
+export default handle(app)
