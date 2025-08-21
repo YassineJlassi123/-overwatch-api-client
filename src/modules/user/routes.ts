@@ -1,8 +1,8 @@
 // src/modules/user/routes.ts
 import { Hono } from 'hono';
-import { createOverwatchClient, OverwatchClient } from '@/lib/overwatch/client';
-import { createUserHandlers } from '@/modules/user/handlers';
-import { config } from '@/lib/config/api';
+import { createOverwatchClient, OverwatchClient } from '@/lib/overwatch/client.js';
+import { createUserHandlers } from '@/modules/user/handlers.js';
+import { config } from '@/lib/config/api.js';
 
 const createUserRoutes = () => {
   const userRoutes = new Hono();

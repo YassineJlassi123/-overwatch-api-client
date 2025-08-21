@@ -1,8 +1,8 @@
 import { Context } from 'hono';
 import { z } from 'zod';
-import { OverwatchClient } from '@/lib/overwatch/client';
-import { createResponse, createErrorResponse } from '@/lib/utils/response';
-import { OverwatchApiError, ValidationError } from '@/lib/utils/errors';
+import { OverwatchClient } from '@/lib/overwatch/client.js';
+import { createResponse, createErrorResponse } from '@/lib/utils/response.js';
+import { OverwatchApiError, ValidationError } from '@/lib/utils/errors.js';
 
 const SearchQuerySchema = z.object({
   name: z.string()

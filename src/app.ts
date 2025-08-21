@@ -3,9 +3,9 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { createSearchRoutes } from '@/modules/search/routes';
-import { createUserRoutes } from '@/modules/user/routes';
-import { healthRoutes } from '@/modules/health/routes';
+import { createSearchRoutes } from '@/modules/search/routes.js';
+import { createUserRoutes } from '@/modules/user/routes.js';
+import { healthRoutes } from '@/modules/health/routes.js';
 
 const app = new Hono();
 

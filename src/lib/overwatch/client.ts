@@ -1,6 +1,6 @@
 // src/lib/overwatch/client.ts
 import got, { Got, HTTPError } from 'got';
-import { OverwatchApiError } from '@/lib/utils/errors';
+import { OverwatchApiError } from '@/lib/utils/errors.js';
 
 export interface OverwatchClientConfig {
   baseUrl: string;
