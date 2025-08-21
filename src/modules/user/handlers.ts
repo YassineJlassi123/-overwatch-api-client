@@ -1,165 +1,196 @@
-// src/modules/user/handlers.ts
 import { Context } from 'hono';
-import { OverwatchClient } from '../../lib/overwatch/client.js';
-import { BattleTagSchema, PlatformSchema } from '../../lib/overwatch/validators.js';
-import { createResponse, createErrorResponse } from '../../lib/utils/response.js';
-import { OverwatchApiError, ValidationError } from '../../lib/utils/errors.js';
-import { config } from '../../lib/config/api.js';
+import { z } from 'zod';
+import { OverwatchClient } from '@/lib/overwatch/client';
+import { createResponse, createErrorResponse } from '@/lib/utils/response';
+import { OverwatchApiError, ValidationError } from '@/lib/utils/errors';
+import { Platform, FullPlayerData } from '@/lib/overwatch/types';
 
-const overwatchClient = new OverwatchClient(config.overwatch);
+const BattleTagSchema = z.string()
+  .regex(/^[a-zA-Z0-9]{3,12}-[0-9]{4,5}$/, 'Invalid BattleTag format (should be: Name-1234)')
+  .min(1, 'BattleTag is required');
 
-export const getUserData = async (c: Context) => {
-  try {
-    const battletag = c.req.param('battletag');
-    const platform = c.req.query('platform') || 'pc';
-    const gamemode = c.req.query('gamemode') || null;
+const PlatformSchema = z.enum(['pc', 'console']).default('pc');
 
-    if (!battletag) {
-      return createErrorResponse(c, 'BattleTag parameter is required', 400);
-    }
+const GameModeSchema = z.enum(['competitive', 'quickplay']).optional();
 
-    // Validate inputs
-    const validatedBattletag = BattleTagSchema.parse(battletag);
-    const validatedPlatform = PlatformSchema.parse(platform);
+const validateUserInput = (battletag: string, platform?: string, gamemode?: string) => {
+  const validatedBattletag = BattleTagSchema.parse(battletag);
+  const validatedPlatform = PlatformSchema.parse(platform || 'pc');
+  const validatedGamemode = gamemode ? GameModeSchema.parse(gamemode) : undefined;
 
-    let validatedGamemode: 'competitive' | 'quickplay' | undefined = undefined;
-    if (gamemode && ['competitive', 'quickplay'].includes(gamemode)) {
-      validatedGamemode = gamemode as 'competitive' | 'quickplay';
-    }
-
-    // Use the single getPlayerData method
-    const userData = await overwatchClient.getPlayerData(
-      validatedBattletag,
-      validatedPlatform,
-      validatedGamemode
-    );
-
-    return createResponse(c, userData, 'User data retrieved successfully');
-  } catch (error) {
-    if (error instanceof ValidationError) {
-      return createErrorResponse(c, `Validation error: ${error.message}`, 400);
-    }
-    if (error instanceof OverwatchApiError) {
-      return createErrorResponse(c, error.message, error.statusCode || 500);
-    }
-    console.error('Get user data error:', error);
-    return createErrorResponse(c, 'Internal server error', 500);
-  }
+  return {
+    battletag: validatedBattletag,
+    platform: validatedPlatform,
+    gamemode: validatedGamemode
+  };
 };
 
-export const getUserSummary = async (c: Context) => {
-  try {
-    const battletag = c.req.param('battletag');
-    const platform = c.req.query('platform') || 'pc';
+const fetchPlayerData = async (
+  client: OverwatchClient,
+  battletag: string,
+  platform: Platform,
+  gamemode?: 'competitive' | 'quickplay'
+): Promise<FullPlayerData> => {
+  let endpoint = `players/${encodeURIComponent(battletag)}`;
+  const params = new URLSearchParams();
 
-    if (!battletag) {
-      return createErrorResponse(c, 'BattleTag parameter is required', 400);
-    }
-
-    // Validate inputs
-    const validatedBattletag = BattleTagSchema.parse(battletag);
-    const validatedPlatform = PlatformSchema.parse(platform);
-
-    // Get full data and extract summary
-    const fullData = await overwatchClient.getPlayerData(
-      validatedBattletag,
-      validatedPlatform
-    );
-
-    return createResponse(c, fullData.summary, 'User summary retrieved successfully');
-  } catch (error) {
-    if (error instanceof ValidationError) {
-      return createErrorResponse(c, `Validation error: ${error.message}`, 400);
-    }
-    if (error instanceof OverwatchApiError) {
-      return createErrorResponse(c, error.message, error.statusCode || 500);
-    }
-    console.error('Get user summary error:', error);
-    return createErrorResponse(c, 'Internal server error', 500);
+  if (platform) {
+    params.append('platform', platform);
   }
+  if (gamemode) {
+    params.append('gamemode', gamemode);
+  }
+  if (params.toString()) {
+    endpoint += `?${params.toString()}`;
+  }
+
+  return await client.get(endpoint);
 };
 
-export const getUserStats = async (c: Context) => {
-  try {
-    const battletag = c.req.param('battletag');
-    const platform = c.req.query('platform') || 'pc';
-    const gamemode = c.req.query('gamemode');
 
-    if (!battletag) {
-      return createErrorResponse(c, 'BattleTag parameter is required', 400);
-    }
+export const createUserHandlers = (client: OverwatchClient) => {
+  const getUserData = async (c: Context) => {
+    try {
+      const battletag = c.req.param('battletag');
+      const platform = c.req.query('platform');
+      const gamemode = c.req.query('gamemode');
 
-    let validatedGamemode: 'competitive' | 'quickplay' | undefined = undefined;
-    if (gamemode) {
-      if (!['competitive', 'quickplay'].includes(gamemode)) {
-        return createErrorResponse(c, 'Gamemode must be either "competitive" or "quickplay"', 400);
+      if (!battletag) {
+        return createErrorResponse(c, 'BattleTag parameter is required', 400);
       }
-      validatedGamemode = gamemode as 'competitive' | 'quickplay';
-    }
 
-    // Validate inputs
-    const validatedBattletag = BattleTagSchema.parse(battletag);
-    const validatedPlatform = PlatformSchema.parse(platform);
+      const validated = validateUserInput(battletag, platform, gamemode);
 
-    // Get full data and extract stats
-    const fullData = await overwatchClient.getPlayerData(
-      validatedBattletag,
-      validatedPlatform,
-      validatedGamemode
-    );
+      const playerData = await fetchPlayerData(
+        client,
+        validated.battletag,
+        validated.platform,
+        validated.gamemode
+      );
 
-    const modeText = validatedGamemode ? `${validatedGamemode} ` : '';
-    return createResponse(c, fullData.stats, `User ${modeText}stats retrieved successfully`);
-  } catch (error) {
-    if (error instanceof ValidationError) {
-      return createErrorResponse(c, `Validation error: ${error.message}`, 400);
-    }
-    if (error instanceof OverwatchApiError) {
-      return createErrorResponse(c, error.message, error.statusCode || 500);
-    }
-    console.error('Get user stats error:', error);
-    return createErrorResponse(c, 'Internal server error', 500);
-  }
-};
+      const responseData = {
+        summary: playerData.summary,
+        stats: playerData.stats,
+      };
 
-export const getFullUserData = async (c: Context) => {
-  try {
-    const battletag = c.req.param('battletag');
-    const platform = c.req.query('platform') || 'pc';
-    const gamemode = c.req.query('gamemode');
-
-    if (!battletag) {
-      return createErrorResponse(c, 'BattleTag parameter is required', 400);
-    }
-
-    let validatedGamemode: 'competitive' | 'quickplay' | undefined = undefined;
-    if (gamemode) {
-      if (!['competitive', 'quickplay'].includes(gamemode)) {
-        return createErrorResponse(c, 'Gamemode must be either "competitive" or "quickplay"', 400);
+      return createResponse(c, responseData, 'User data retrieved successfully');
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return createErrorResponse(c, `Validation error: ${error.message}`, 400);
       }
-      validatedGamemode = gamemode as 'competitive' | 'quickplay';
+      if (error instanceof OverwatchApiError) {
+        return createErrorResponse(c, error.message, error.statusCode || 500);
+      }
+      console.error('Get user data error:', error);
+      return createErrorResponse(c, 'Internal server error', 500);
     }
+  };
 
-    // Validate inputs
-    const validatedBattletag = BattleTagSchema.parse(battletag);
-    const validatedPlatform = PlatformSchema.parse(platform);
+  const getUserSummary = async (c: Context) => {
+    try {
+      const battletag = c.req.param('battletag');
+      const platform = c.req.query('platform');
 
-    // Use the single getPlayerData method - this IS the full data
-    const fullData = await overwatchClient.getPlayerData(
-      validatedBattletag,
-      validatedPlatform,
-      validatedGamemode
-    );
+      if (!battletag) {
+        return createErrorResponse(c, 'BattleTag parameter is required', 400);
+      }
 
-    return createResponse(c, fullData, 'Full user data retrieved successfully');
-  } catch (error) {
-    if (error instanceof ValidationError) {
-      return createErrorResponse(c, `Validation error: ${error.message}`, 400);
+      // Validate inputs
+      const validated = validateUserInput(battletag, platform);
+
+      // Fetch player data
+      const playerData = await fetchPlayerData(
+        client,
+        validated.battletag,
+        validated.platform
+      );
+
+      return createResponse(c, playerData.summary, 'User summary retrieved successfully');
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return createErrorResponse(c, `Validation error: ${error.message}`, 400);
+      }
+      if (error instanceof OverwatchApiError) {
+        return createErrorResponse(c, error.message, error.statusCode || 500);
+      }
+      console.error('Get user summary error:', error);
+      return createErrorResponse(c, 'Internal server error', 500);
     }
-    if (error instanceof OverwatchApiError) {
-      return createErrorResponse(c, error.message, error.statusCode || 500);
+  };
+
+  const getUserStats = async (c: Context) => {
+    try {
+      const battletag = c.req.param('battletag');
+      const platform = c.req.query('platform');
+      const gamemode = c.req.query('gamemode');
+
+      if (!battletag) {
+        return createErrorResponse(c, 'BattleTag parameter is required', 400);
+      }
+
+      // Validate inputs
+      const validated = validateUserInput(battletag, platform, gamemode);
+
+      // Fetch player data
+      const playerData = await fetchPlayerData(
+        client,
+        validated.battletag,
+        validated.platform,
+        validated.gamemode
+      );
+
+      const modeText = validated.gamemode ? `${validated.gamemode} ` : '';
+      return createResponse(c, playerData.stats, `User ${modeText}stats retrieved successfully`);
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return createErrorResponse(c, `Validation error: ${error.message}`, 400);
+      }
+      if (error instanceof OverwatchApiError) {
+        return createErrorResponse(c, error.message, error.statusCode || 500);
+      }
+      console.error('Get user stats error:', error);
+      return createErrorResponse(c, 'Internal server error', 500);
     }
-    console.error('Get full user data error:', error);
-    return createErrorResponse(c, 'Internal server error', 500);
-  }
+  };
+
+  const getFullUserData = async (c: Context) => {
+    try {
+      const battletag = c.req.param('battletag');
+      const platform = c.req.query('platform');
+      const gamemode = c.req.query('gamemode');
+
+      if (!battletag) {
+        return createErrorResponse(c, 'BattleTag parameter is required', 400);
+      }
+
+      // Validate inputs
+      const validated = validateUserInput(battletag, platform, gamemode);
+
+      // Fetch player data
+      const playerData = await fetchPlayerData(
+        client,
+        validated.battletag,
+        validated.platform,
+        validated.gamemode
+      );
+
+      return createResponse(c, playerData, 'Full user data retrieved successfully');
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return createErrorResponse(c, `Validation error: ${error.message}`, 400);
+      }
+      if (error instanceof OverwatchApiError) {
+        return createErrorResponse(c, error.message, error.statusCode || 500);
+      }
+      console.error('Get full user data error:', error);
+      return createErrorResponse(c, 'Internal server error', 500);
+    }
+  };
+
+  return {
+    getUserData,
+    getUserSummary,
+    getUserStats,
+    getFullUserData
+  };
 };

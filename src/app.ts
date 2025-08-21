@@ -4,9 +4,9 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { searchRoutes } from './modules/search/routes.js';
-import { userRoutes } from './modules/user/routes.js';
-import { healthRoutes } from './modules/health/routes.js';
+import { createSearchRoutes } from '@/modules/search/routes';
+import { createUserRoutes } from '@/modules/user/routes';
+import { healthRoutes } from '@/modules/health/routes';
 
 const app = new Hono();
 
@@ -43,9 +43,8 @@ app.get('/', (c) => {
   }
 });
 
-// API Routes
-app.route('/api/search', searchRoutes);
-app.route('/api/user', userRoutes);
+app.route('/api/search', createSearchRoutes());
+app.route('/api/user', createUserRoutes());
 app.route('/health', healthRoutes);
 
 // 404 handler

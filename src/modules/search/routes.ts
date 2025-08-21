@@ -1,8 +1,19 @@
+// src/modules/search/routes.ts
 import { Hono } from 'hono';
-import { searchUser } from './handlers.js';
+import { createOverwatchClient, OverwatchClient } from '@/lib/overwatch/client';
+import { createSearchHandlers } from './handlers';
+import { config } from '@/lib/config/api';
 
-const searchRoutes = new Hono();
+const createSearchRoutes = () => {
+  const searchRoutes = new Hono();
+  
+  const client: OverwatchClient = createOverwatchClient(config.overwatch);
+  
+  const handlers = createSearchHandlers(client);
 
-searchRoutes.get('/', searchUser);
+  searchRoutes.get('/', handlers.searchUser);
 
-export { searchRoutes };
+  return searchRoutes;
+};
+
+export { createSearchRoutes };
